@@ -225,7 +225,7 @@ joinToLength n xs = filter (\x -> length x == n) [first ++ last | first <- xs, l
 --   sumRights [Left "bad!", Left "missing"]         ==>  0
 
 sumRights :: [Either a Int] -> Int
-sumRights = todo
+sumRights xs = sum $ rights xs
 
 ------------------------------------------------------------------------------
 -- Ex 12: recall the binary function composition operation
@@ -241,7 +241,9 @@ sumRights = todo
 --   multiCompose [(3*), (2^), (+1)] 0 ==> 6
 --   multiCompose [(+1), (2^), (3*)] 0 ==> 2
 
-multiCompose fs = todo
+multiCompose :: [a -> a] -> a -> a
+multiCompose [] a = a
+multiCompose fs a = multiCompose (init fs) (last fs a)
 
 ------------------------------------------------------------------------------
 -- Ex 13: let's consider another way to compose multiple functions. Given
@@ -260,8 +262,8 @@ multiCompose fs = todo
 --   multiApp reverse [tail, take 2, reverse] "foo" ==> ["oof","fo","oo"]
 --   multiApp concat [take 3, reverse] "race" ==> "racecar"
 
-multiApp = todo
-
+multiApp :: ([b] -> c) -> [a -> b] -> a -> c
+multiApp f gs x = f $ map ($x) gs
 ------------------------------------------------------------------------------
 -- Ex 14: in this exercise you get to implement an interpreter for a
 -- simple language. You should keep track of the x and y coordinates,
@@ -295,4 +297,16 @@ multiApp = todo
 -- function, the surprise won't work.
 
 interpreter :: [String] -> [String]
-interpreter commands = todo
+interpreter cs = interpreter' cs [] 0 0
+
+interpreter' :: [String] -> [String] -> Int -> Int -> [String]
+interpreter' (c:cs) p x y
+  | c == "printX" = interpreter' cs (p ++ [show x]) x y
+  | c == "printY" = interpreter' cs (p ++ [show y]) x y
+  | c == "up" = interpreter' cs p x (y + 1)
+  | c == "down" = interpreter' cs p x (y - 1)
+  | c == "left" = interpreter' cs p (x - 1) y
+  | c == "right" = interpreter' cs p (x + 1) y
+  | otherwise = p
+
+interpreter' _ p x y = p
