@@ -5,13 +5,12 @@
 
 module Set3a where
 
-import Mooc.Todo
-
 -- Some imports you'll need.
 -- Do not add any other imports! :)
 import Data.Char
 import Data.Either
 import Data.List
+import Mooc.Todo
 
 ------------------------------------------------------------------------------
 -- Ex 1: implement the function maxBy that takes as argument a
@@ -28,7 +27,9 @@ import Data.List
 --  maxBy head   [1,2,3] [4,5]  ==>  [4,5]
 
 maxBy :: (a -> Int) -> a -> a -> a
-maxBy measure a b = todo
+maxBy measure a b
+  | measure a > measure b = a
+  | otherwise = b
 
 ------------------------------------------------------------------------------
 -- Ex 2: implement the function mapMaybe that takes a function and a
@@ -40,7 +41,8 @@ maxBy measure a b = todo
 --   mapMaybe length (Just "abc") ==> Just 3
 
 mapMaybe :: (a -> b) -> Maybe a -> Maybe b
-mapMaybe f x = todo
+mapMaybe f Nothing = Nothing
+mapMaybe f (Just x) = Just (f x)
 
 ------------------------------------------------------------------------------
 -- Ex 3: implement the function mapMaybe2 that works like mapMaybe
@@ -54,7 +56,8 @@ mapMaybe f x = todo
 --   mapMaybe2 div (Just 6) Nothing   ==>  Nothing
 
 mapMaybe2 :: (a -> b -> c) -> Maybe a -> Maybe b -> Maybe c
-mapMaybe2 f x y = todo
+mapMaybe2 f (Just x) (Just y) = Just (f x y)
+mapMaybe2 f _ _ = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 4: define the functions firstHalf and palindrome so that
@@ -76,9 +79,13 @@ mapMaybe2 f x y = todo
 palindromeHalfs :: [String] -> [String]
 palindromeHalfs xs = map firstHalf (filter palindrome xs)
 
-firstHalf = todo
+firstHalf :: String -> String
+firstHalf xs
+  | even (length xs) = take (length xs `div` 2) xs
+  | otherwise = take ((length xs `div` 2) + 1) xs
 
-palindrome = todo
+palindrome :: String -> Bool
+palindrome str = reverse str == str
 
 ------------------------------------------------------------------------------
 -- Ex 5: Implement a function capitalize that takes in a string and
@@ -96,7 +103,11 @@ palindrome = todo
 --   capitalize "goodbye cruel world" ==> "Goodbye Cruel World"
 
 capitalize :: String -> String
-capitalize = todo
+capitalize ws = unwords . map capitalize' $ words ws
+
+capitalize' :: String -> String 
+capitalize' (h:t) = [toUpper h] ++ t
+capitalize' [] = []
 
 ------------------------------------------------------------------------------
 -- Ex 6: powers k max should return all the powers of k that are less
@@ -113,7 +124,7 @@ capitalize = todo
 --   * the function takeWhile
 
 powers :: Int -> Int -> [Int]
-powers k max = todo
+powers k max = takeWhile (<= max) (map (k^) [0..max])
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a functional while loop. While should be a function
@@ -135,8 +146,10 @@ powers k max = todo
 --   in while check tail "xyzAvvt"
 --     ==> Avvt
 
-while :: (a->Bool) -> (a->a) -> a -> a
-while check update value = todo
+while :: (a -> Bool) -> (a -> a) -> a -> a
+while check update value
+  | check value = while check update (update value)
+  | otherwise = value
 
 ------------------------------------------------------------------------------
 -- Ex 8: another version of a while loop. This time, the check
@@ -153,12 +166,16 @@ while check update value = todo
 --   whileRight (step 1000) 3  ==> 1536
 
 whileRight :: (a -> Either b a) -> a -> b
-whileRight f x = todo
+whileRight f a = whileRight' f (f a)
+
+whileRight' :: (a -> Either b a) -> Either b a -> b
+whileRight' f (Right a) = whileRight' f (f a)
+whileRight' f (Left b) = b
 
 -- for the whileRight examples:
 -- step k x doubles x if it's less than k
 step :: Int -> Int -> Either Int Int
-step k x = if x<k then Right (2*x) else Left x
+step k x = if x < k then Right (2 * x) else Left x
 
 ------------------------------------------------------------------------------
 -- Ex 9: given a list of strings and a length, return all strings that
@@ -172,7 +189,7 @@ step k x = if x<k then Right (2*x) else Left x
 -- Hint! This is a great use for list comprehensions
 
 joinToLength :: Int -> [String] -> [String]
-joinToLength = todo
+joinToLength n xs = filter (\x -> length x == n) [first ++ last | first <- xs, last <- xs]
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the operator +|+ that returns a list with the first
@@ -185,6 +202,12 @@ joinToLength = todo
 --   [1,2,3] +|+ [4,5,6]  ==> [1,4]
 --   [] +|+ [True]        ==> [True]
 --   [] +|+ []            ==> []
+
+(+|+) :: [Int] -> [Int] -> [Int]
+(x:_) +|+ (y:_) = [x, y]
+[] +|+ (y:_) = [y]
+(x:_) +|+ [] = [x]
+[] +|+ [] = []
 
 
 ------------------------------------------------------------------------------
