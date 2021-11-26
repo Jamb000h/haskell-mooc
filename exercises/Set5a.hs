@@ -137,7 +137,10 @@ data Student = Freshman | NthYear Int | Graduated
 study :: Student -> Student
 study Graduated = Graduated
 study Freshman = NthYear 1
-study (NthYear y) = if y < 7 then NthYear (y + 1) else Graduated
+study (NthYear y) = 
+  if y < 7 
+  then NthYear (y + 1) 
+  else Graduated
 
 ------------------------------------------------------------------------------
 -- Ex 7: define a datatype UpDown that represents a counter that can
