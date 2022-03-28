@@ -17,7 +17,7 @@ import Text.Read (readMaybe)
 --  sumTwoMaybes Nothing Nothing    ==> Nothing
 
 sumTwoMaybes :: Maybe Int -> Maybe Int -> Maybe Int
-sumTwoMaybes = todo
+sumTwoMaybes x y = liftA2 (+) x y
 
 ------------------------------------------------------------------------------
 -- Ex 2: Given two lists of words, xs and ys, generate all statements
@@ -36,7 +36,8 @@ sumTwoMaybes = todo
 --         "code is not suffering","code is not life"]
 
 statements :: [String] -> [String] -> [String]
-statements = todo
+statements xs ys = concat $ liftA2 combine xs ys
+  where combine x y = [x ++ " is " ++ y, x ++ " is not " ++ y]
 
 ------------------------------------------------------------------------------
 -- Ex 3: A simple calculator with error handling. Given an operation
@@ -54,7 +55,10 @@ statements = todo
 --  calculator "double" "7x"  ==> Nothing
 
 calculator :: String -> String -> Maybe Int
-calculator = todo
+calculator op n
+  | op == "negate" = (Just (\x -> -x) <*> (readMaybe n :: Maybe Int))
+  | op == "double" = (Just (* 2)  <*> (readMaybe n :: Maybe Int))
+  | otherwise = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 4: Safe division. Implement the function validateDiv that
@@ -71,7 +75,7 @@ calculator = todo
 --  validateDiv 0 3 ==> Ok 0
 
 validateDiv :: Int -> Int -> Validation Int
-validateDiv = todo
+validateDiv x y = check (y > 0) "Division by zero!" (x `div` y)
 
 ------------------------------------------------------------------------------
 -- Ex 5: Validating street addresses. A street address consists of a
@@ -101,7 +105,11 @@ data Address = Address String String String
   deriving (Show,Eq)
 
 validateAddress :: String -> String -> String -> Validation Address
-validateAddress streetName streetNumber postCode = todo
+validateAddress streetName streetNumber postCode = address <$> checkStreetName <*> checkStreetNumber <*> checkPostcode
+  where checkStreetName = check (length streetName < 21) "Invalid street name" streetName
+        checkStreetNumber = check (all isDigit streetNumber) "Invalid street number" streetNumber
+        checkPostcode = check (length postCode == 5 && all isDigit postCode) "Invalid postcode" postCode
+        address sName sNum pCode = (Address sName sNum pCode)
 
 ------------------------------------------------------------------------------
 -- Ex 6: Given the names, ages and employment statuses of two
@@ -123,7 +131,8 @@ data Person = Person String Int Bool
 twoPersons :: Applicative f =>
   f String -> f Int -> f Bool -> f String -> f Int -> f Bool
   -> f [Person]
-twoPersons name1 age1 employed1 name2 age2 employed2 = todo
+twoPersons name1 age1 employed1 name2 age2 employed2 = (\p1 p2 -> [p1, p2]) <$> person name1 age1 employed1 <*> person name2 age2 employed2
+    where person n a e = Person <$> n <*> a <*> e
 
 ------------------------------------------------------------------------------
 -- Ex 7: Validate a String that's either a Bool or an Int. The return
@@ -143,8 +152,11 @@ twoPersons name1 age1 employed1 name2 age2 employed2 = todo
 --  boolOrInt "Falseb"  ==> Errors ["Not a Bool","Not an Int"]
 
 boolOrInt :: String -> Validation (Either Bool Int)
-boolOrInt = todo
-
+boolOrInt x = checkBool (readMaybe x :: Maybe Bool) <|> checkInt (readMaybe x :: Maybe Int)
+  where checkBool (Just b) = check True "Not a Bool" (Left b)
+        checkBool Nothing = invalid "Not a Bool"
+        checkInt (Just i) = check True "Not an Int" (Right i)
+        checkInt Nothing = invalid "Not an Int"
 ------------------------------------------------------------------------------
 -- Ex 8: Improved phone number validation. Implement the function
 -- normalizePhone that, given a String:
@@ -167,7 +179,11 @@ boolOrInt = todo
 --    ==> Errors ["Too long"]
 
 normalizePhone :: String -> Validation String
-normalizePhone = todo
+normalizePhone p = validatePhone (removeSpaces p)
+  where validatePhone s = checkLength s *> checkDigits s
+        removeSpaces c = filter (not . isSpace) c
+        checkLength c = check (length c <= 10) "Too long" c
+        checkDigits c = traverse (\x -> check (isDigit x) ("Invalid character: " ++ [x]) x) c
 
 ------------------------------------------------------------------------------
 -- Ex 9: Parsing expressions. The Expression type describes an
@@ -209,9 +225,17 @@ data Arg = Number Int | Variable Char
 
 data Expression = Plus Arg Arg | Minus Arg Arg
   deriving (Show, Eq)
-
 parseExpression :: String -> Validation Expression
-parseExpression = todo
+parseExpression s =
+  if (length (words s) > 3)
+  then invalid ("Invalid expression: " ++ s)
+  else let [a1, op, a2] = words s
+       in expression <$> checkOp op <*> checkArg a1
+    where checkO op = check (op `elem` ["+", "-"]) ("Unknown operator: " ++ op) op
+          checkInt a = check ((readMaybe a :: Maybe Int) /= Nothing) ("Invalid number: " ++ a) a
+          checkVar a = check (length a == 1 && isAlpha a) ("Invalid variable: " ++ a) a
+          checkArg a = checkInt <|> checkVar a
+          expression xs xx xy= (Plus (Number 1) (Number 2))
 
 ------------------------------------------------------------------------------
 -- Ex 10: The Priced T type tracks a value of type T, and a price
