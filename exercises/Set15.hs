@@ -225,17 +225,18 @@ data Arg = Number Int | Variable Char
 
 data Expression = Plus Arg Arg | Minus Arg Arg
   deriving (Show, Eq)
+
 parseExpression :: String -> Validation Expression
 parseExpression s =
-  if (length (words s) > 3)
+  if (length (words s) /= 3)
   then invalid ("Invalid expression: " ++ s)
   else let [a1, op, a2] = words s
-       in expression <$> checkOp op <*> checkArg a1
-    where checkO op = check (op `elem` ["+", "-"]) ("Unknown operator: " ++ op) op
-          checkInt a = check ((readMaybe a :: Maybe Int) /= Nothing) ("Invalid number: " ++ a) a
-          checkVar a = check (length a == 1 && isAlpha a) ("Invalid variable: " ++ a) a
-          checkArg a = checkInt <|> checkVar a
-          expression xs xx xy= (Plus (Number 1) (Number 2))
+       in expression <$> checkOp op <*> checkArg a1 <*> checkArg a2
+    where checkOp op = check (op `elem` ["+", "-"]) ("Unknown operator: " ++ op) op
+          checkArg (a:as) = case (readMaybe (a:as) :: Maybe Int) of
+                        (Just num) -> check True "" (Number num)
+                        Nothing -> invalid ("Invalid number: " ++ (a:as)) <|> check (length (a:as) == 1 && isAlpha a) ("Invalid variable: " ++ (a:as)) (Variable a)
+          expression operation argument1 argument2 = if operation == "+" then (Plus argument1 argument2) else (Minus argument1 argument2)
 
 ------------------------------------------------------------------------------
 -- Ex 10: The Priced T type tracks a value of type T, and a price
@@ -260,11 +261,11 @@ data Priced a = Priced Int a
   deriving (Show, Eq)
 
 instance Functor Priced where
-  fmap = todo
+  fmap f (Priced p n) = (Priced p (f n))
 
 instance Applicative Priced where
-  pure = todo
-  liftA2 = todo
+  pure p = (Priced 0 p)
+  liftA2 f (Priced p1 n1) (Priced p2 n2) = (Priced (p1 + p2) (f n1 n2))
 
 ------------------------------------------------------------------------------
 -- Ex 11: This and the next exercise will use a copy of the
@@ -297,7 +298,10 @@ instance MyApplicative [] where
   myLiftA2 = liftA2
 
 (<#>) :: MyApplicative f => f (a -> b) -> f a -> f b
-f <#> x = todo
+f <#> x = myLiftA2 (\f x -> f x) f x
+-- The idea here is that you want to give myLiftA2 a function of type (a -> b -> c)
+-- which can be created by producing an anonymous function that has 
+-- f and x as a and b and f x produces c.
 
 ------------------------------------------------------------------------------
 -- Ex 12: Reimplement fmap using liftA2 and pure. In practical terms,
@@ -314,8 +318,12 @@ f <#> x = todo
 --  myFmap negate [1,2,3]  ==> [-1,-2,-3]
 
 myFmap :: MyApplicative f => (a -> b) -> f a -> f b
-myFmap = todo
-
+myFmap f x = (myPure f) <#> x
+-- We lift f to f f (so (a -> b) to f (a -> b)) which can be eaten by our custom
+-- <#> which is useful as the given examples are pretty similar to the examples for
+-- <$> in course material (which is just fmap!) so we want to use <#>. I still cannot
+-- wrap my head around all the subject material but getting the types right seems
+-- to be the way as per the task definition :D
 ------------------------------------------------------------------------------
 -- Ex 13: Given a function that returns an Alternative value, and a
 -- list, try the function on all the elements in the list and produce
@@ -341,7 +349,8 @@ myFmap = todo
 --       ==> Errors ["zero","zero","zero"]
 
 tryAll :: Alternative f => (a -> f b) -> [a] -> f b
-tryAll = todo
+tryAll f (x:xs) = f x <|> tryAll f xs
+tryAll _ _ = empty
 
 ------------------------------------------------------------------------------
 -- Ex 14: Here's the type `Both` that expresses the composition of
@@ -366,7 +375,7 @@ newtype Both f g a = Both (f (g a))
   deriving Show
 
 instance (Functor f, Functor g) => Functor (Both f g) where
-  fmap = todo
+  fmap f (Both x) = (Both (fmap (fmap f) x))
 
 ------------------------------------------------------------------------------
 -- Ex 15: The composition of two Applicatives is also an Applicative!
@@ -394,5 +403,5 @@ instance (Functor f, Functor g) => Functor (Both f g) where
 --              Errors ["fail 1","fail 2"]]
 
 instance (Applicative f, Applicative g) => Applicative (Both f g) where
-  pure = todo
-  liftA2 = todo
+  pure x = Both (pure (pure x))
+  liftA2 f (Both x) (Both y) = Both (liftA2 (liftA2 f) x y)
